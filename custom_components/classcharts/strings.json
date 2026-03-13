@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "email": "Email Address",
+          "password": "Password",
+          "pupil_id": 8488170       }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password",
+      "cannot_connect": "Failed to connect to Class Charts"
+    }
+  }
+}
