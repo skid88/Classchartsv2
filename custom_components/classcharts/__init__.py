@@ -51,6 +51,9 @@ def sync_get_classcharts_data(email, password, pupil_id, days_to_fetch):
         )
         login_resp.raise_for_status()
         login_json = login_resp.json()
+        if not isinstance(login_json, dict):
+            _LOGGER.error("Login failed: Unexpected response format.")
+            return {}
         token = login_json.get("meta", {}).get("session_id")
 
         if not token:
