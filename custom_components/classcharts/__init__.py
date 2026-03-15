@@ -5,7 +5,7 @@ import requests
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 
 from .const import (
@@ -18,7 +18,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.warning("Classcharts __init__ loaded from master copy")
 
 def _normalize_lesson(lesson):
     if not isinstance(lesson, dict):
@@ -53,120 +52,12 @@ def sync_get_classcharts_data(email, password, pupil_id, days_to_fetch):
         login_resp.raise_for_status()
         login_json = login_resp.json()
 
-# Hard guard for unexpected formats
-if isinstance(login_json, list):
-    _LOGGER.error("Login failed: list response: %s", login_json[:1])
-    return {}
-if not isinstance(login_json, dict):
-    _LOGGER.error("Login failed: Unexpected response format: %s", type(login_json))
-    return {}
+        # FIXED: Safety check to prevent 'list' object has no attribute 'get'
+        if not isinstance(login_json, dict):
+            _LOGGER.error("Login failed: Expected dict but got %s: %s", type(login_json), login_json)
+            return None
 
-token = login_json.get("meta", {}).get("session_id")
+        token = login_json.get("meta", {}).get("session_id")
 
         if not token:
-            _LOGGER.error("Login failed: No session_id found.")
-            return {}
-
-        # 2. Fetch Timetable
-        full_schedule = {}
-        for i in range(days_to_fetch):
-            target_date = datetime.date.today() + datetime.timedelta(days=i)
-            date_str = target_date.strftime("%Y-%m-%d")
-
-            resp = session.get(
-                f"{TIMETABLE_URL}/{pupil_id}?date={date_str}",
-                headers={"Authorization": f"Basic {token}"},
-                timeout=10
-            )
-            day_data = resp.json()
-            if not isinstance(day_data, dict):
-                _LOGGER.error("Timetable response not dict for %s: %s", date_str, type(day_data))
-                continue
-            
-            if isinstance(day_data, dict):
-                lessons = day_data.get("data", [])
-                if isinstance(lessons, list):
-                    full_schedule[date_str] = [
-                        _normalize_lesson(lesson) for lesson in lessons
-                    ]
-                else:
-                    full_schedule[date_str] = []
-
-        # 3. Fetch Homework
-        hw_from = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        hw_to = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-        hw_url = f"https://www.classcharts.com/apiv2parent/homeworks/{pupil_id}?display_date=due_date&from={hw_from}&to={hw_to}"
-        
-        hw_resp = session.get(
-            hw_url,
-            headers={"Authorization": f"Basic {token}"},
-            timeout=10
-        )
-        homework_data = hw_resp.json()
-        if not isinstance(homework_data, dict):
-            _LOGGER.error("Homework response not dict: %s", type(homework_data))
-            homework_data = {}
-
-        return {
-            "timetable": full_schedule,
-            "homework": homework_data
-        }
-
-    except Exception:
-        _LOGGER.exception("Class Charts Sync Error")
-        return None
-    finally:
-        session.close()
-
-class ClassChartsCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Class Charts data."""
-    def __init__(self, hass, entry):
-        self.refresh_interval = entry.options.get(CONF_REFRESH_INTERVAL, 24)
-        self.days_to_fetch = entry.options.get(CONF_DAYS_TO_FETCH, 7)
-
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(hours=self.refresh_interval),
-        )
-        self.entry = entry
-
-    async def _async_update_data(self):
-        """Fetch data from API."""
-        result = await self.hass.async_add_executor_job(
-            sync_get_classcharts_data,
-            self.entry.data[CONF_EMAIL],
-            self.entry.data[CONF_PASSWORD],
-            self.entry.data[CONF_PUPIL_ID],
-            self.days_to_fetch
-        )
-        if result is None:
-            return self.data or {}
-        return result
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Class Charts from a config entry."""
-    coordinator = ClassChartsCoordinator(hass, entry)
-    
-    await coordinator.async_config_entry_first_refresh()
-
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "calendar"])
-    
-    entry.async_on_unload(entry.add_update_listener(update_listener))
-    
-    return True
-
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
-    """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, ["sensor", "calendar"])
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-    return unload_ok
+            _LOGGER.error("Login failed: No
