@@ -18,6 +18,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_LOGGER.warning("Classcharts __init__ loaded from master copy")
 
 def _normalize_lesson(lesson):
     if not isinstance(lesson, dict):
@@ -52,7 +53,7 @@ def sync_get_classcharts_data(email, password, pupil_id, days_to_fetch):
         login_resp.raise_for_status()
         login_json = login_resp.json()
         if not isinstance(login_json, dict):
-            _LOGGER.error("Login failed: Unexpected response format.")
+            _LOGGER.error("Login failed: Unexpected response format: %s", type(login_json))
             return {}
         token = login_json.get("meta", {}).get("session_id")
 
