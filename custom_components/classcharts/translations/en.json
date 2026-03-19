@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Class Charts Setup",
+        "description": "Enter your Class Charts parent account details. You can find your Pupil ID on your child's profile page.",
+        "data": {
+          "email": "Email Address",
+          "password": "Password",
+          "pupil_id": "Pupil ID"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Class Charts",
+      "invalid_auth": "Invalid email or password",
+      "unknown": "Unexpected error occurred"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Class Charts Configuration",
+        "description": "Adjust how much data you want to retrieve and how often.",
+        "data": {
+          "days_to_fetch": "Days to Fetch (1-30)",
+          "refresh_interval": "Update Frequency (Hours)"
+        }
+      }
+    }
+  }
+}
