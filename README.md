@@ -86,6 +86,7 @@ Use a **Markdown Card** to display your assignments beautifully:
   Last checked: {{ now().strftime('%H:%M') }}
 </p>
 ```
+![Screenshot](https://github.com/skid88/Classcharts/blob/main/homework2.png)
 ---
 ## 🤝 Support
 If you encounter any issues or have feature requests, please open an [Issue](https://github.com/skid88/Classcharts/issues) on this repository.
