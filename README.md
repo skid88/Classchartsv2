@@ -1,94 +1,88 @@
 # 🏫 Class Charts for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Home_Assistant-blue.svg)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
-A professional custom integration that brings your **Class Charts** school timetable and homework tracking directly into Home Assistant. Monitor lessons, track classrooms, see which teacher you have next in real-time,
+A modern, UI-configurable integration that brings your **Class Charts** school timetable and homework tracking directly into Home Assistant. 
 
 ---
 
 ## 🛠 Features
-- 📅 **Full Calendar Integration**: Syncs your entire school timetable to the Home Assistant Calendar.
-- 👨‍🏫 **Lesson Sensors**: Dedicated entities for `Current Lesson` and `Next Lesson`.
-- 📍 **Location Tracking**: View room numbers and building names for every period.
-- 📋 **Teacher Info**: See the name of the teacher assigned to each lesson.
-- 📝 **Homework List (30 Days)**: Exposes upcoming homework assignments as a list for dashboards.
-- 🎨 **Custom Branding**: Includes built-in icons for a seamless look in your "Devices & Services" list.
+- 📅 **Native Calendar Support**: Syncs your entire school timetable to the HA Calendar.
+- ⚙️ **UI Configuration**: No YAML required. Setup and adjust settings directly in the UI.
+- 📝 **Homework Tracking**: Detailed sensors for outstanding, completed, and total tasks.
+- 👨‍🏫 **Lesson Monitoring**: Know exactly what lesson is on now and what's coming up next.
+- 🔄 **Adjustable Fetching**: Choose to look ahead from 1 to 30 days via the "Configure" menu.
 
 ---
 
 ## 📦 Installation
 
 ### Option 1: HACS (Recommended)
-1. Open **HACS** in Home Assistant.
-2. Click the three dots in the top right and select **Custom repositories**.
-3. Paste this URL: `https://github.com/skid88/Classcharts`
-4. Select **Integration** as the category and click **Add**.
-5. Find "Class Charts Timetable" and click **Download**.
-6. **Restart** Home Assistant.
+1. Open **HACS** > **Integrations**.
+2. Click the three dots (top right) > **Custom repositories**.
+3. Paste your Repo URL: `https://github.com/skid88/Classcharts`
+4. Category: **Integration**.
+5. Download and **Restart** Home Assistant.
 
 ### Option 2: Manual
-1. Download the `classcharts` folder from `custom_components/`.
-2. Upload it to your Home Assistant `/config/custom_components/` directory.
-3. **Restart** Home Assistant.
+1. Copy the `classcharts` folder to your `/config/custom_components/` directory.
+2. **Restart** Home Assistant.
 
 ---
 
 ## ⚙️ Configuration
-1. Navigate to **Settings** > **Devices & Services**.
-2. Click **Add Integration** and search for **Class Charts Timetable**.
-3. Enter your login credentials:
-   - **Email**: Your Class Charts account email.
-   - **Password**: Your Class Charts password.
-   - **Pupil ID**: Found on your student profile page.
+1. Go to **Settings** > **Devices & Services**.
+2. Click **Add Integration** > Search for **Class Charts**.
+3. Enter your **Email**, **Password**, and **Pupil ID**.
+4. To change settings later, click **Configure** on the integration card.
 
 ---
 
-## 📊 Available Sensors
+## 📊 Available Entities
 
-| Sensor | Data Source | Description |
-| :--- | :--- | :--- |
-| **Homework Outstanding** | `meta.this_week_outstanding_count` | Number of tasks currently due. |
-| **Homework Completed** | `meta.this_week_completed_count` | Number of tasks ticked 'yes'. |
-| **Homework Total** | `meta.this_week_due_count` | All tasks assigned for the current week. |
-| **Homework Upcoming (30 Days)** | `homework.data` | List of upcoming assignments due in the next 30 days (as attributes). |
-| **Current Lesson** | `timetable[today][0]` | The subject name of the ongoing lesson. |
-| **Next Lesson** | `timetable[today][1]` | The subject name of the upcoming lesson. |
-| **Timetable Count** | `len(timetable[today])` | Total number of lessons scheduled for today. |
-| **Class Charts Calendar** | `calendar` platform | Full school schedule visible in HA Calendar. |
+### 🗓️ Timetable & Calendar
+| Entity | Description |
+| :--- | :--- |
+| `calendar.class_charts` | Full interactive school schedule with rooms and teachers. |
+| `sensor.current_lesson` | The name of the subject currently being taught. |
+| `sensor.next_lesson` | The name of the next scheduled subject. |
+| `sensor.timetable_count` | Total number of lessons scheduled for the current day. |
 
-## 🧾 Homework List Display (Lovelace)
-
-Use a Markdown card to show each homework item on its own line:
-
-```yaml
-type: markdown
-title: Homework (Next 30 Days)
-content: >
-  {% set items = state_attr('sensor.homework_upcoming_30_days', 'items') or [] %}
-  {% if items | length == 0 %}
-  No homework due in the next 30 days.
-  {% else %}
-  {% for item in items %}
-  - {{ item.subject }}: {{ item.title }}
-  {% endfor %}
-  {% endif %}
-```
-
-## 🚀 New Features (v30 "Weekend-Safe" Edition)
-- **Direct API Mapping:** Pulls `this_week` counts directly from the API `meta` block for 100% accuracy with the official app.
-- **Crash Protection:** Implements strict length-checks on timetable arrays to prevent `KeyError` during weekends or holidays.
-- **Enhanced Sensors:** 7 core sensors plus a full student calendar.
-- **Card-Mod Ready:** Optimized unique IDs for easy CSS styling in the dashboard.
-- **Homework List:** New 30-day upcoming homework list exposed for dashboards.
+### 📝 Homework Sensors
+| Entity | Description |
+| :--- | :--- |
+| `sensor.outstanding_homework` | Count of tasks not yet finished. (Includes full list in attributes). |
+| `sensor.completed_homework` | Count of tasks marked as completed. |
+| `sensor.homework_total` | The sum of all homework tasks assigned for the period. |
 
 ---
+
  ![Screenshot](https://github.com/skid88/Classcharts/blob/main/Timetable.png)
  ![Screenshot](https://github.com/skid88/Classcharts/blob/main/homework.png)
-
 ---
+## 🎨 Dashboard: Homework List
+Use a **Markdown Card** to display your assignments beautifully:
 
+```jinja2
+## 📝 Outstanding Homework
+{% set items = state_attr('sensor.outstanding_homework', 'homework_list') %}
+{% if items %}
+  {% for hw in items %}
+  **{{ hw.title }}** ({{ hw.subject }})
+  *Due: {{ hw.due_date }}*
+  ***
+  {% endfor %}
+{% else %}
+  All caught up! 🎉
+{% endif %}
+
+<p style="text-align: center; color: #555; font-size: 0.8em;">
+  Last checked: {{ now().strftime('%H:%M') }}
+</p>
+```
+---
 ## 🤝 Support
 If you encounter any issues or have feature requests, please open an [Issue](https://github.com/skid88/Classcharts/issues) on this repository.
 
