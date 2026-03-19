@@ -1,88 +1,137 @@
-import logging
-from datetime import datetime
-import homeassistant.util.dt as dt_util
+from __future__ import annotations
+from datetime import datetime, date, timedelta
+
+from homeassistant.util import dt as dt_util
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import DOMAIN, CONF_PUPIL_ID
 
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up the Class Charts timetable platform."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    pupil_id = config_entry.data.get(CONF_PUPIL_ID)
+async def async_setup_entry(
+    hass: HomeAssistant, 
+    entry: ConfigEntry, 
+    async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set up the Class Charts calendars."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     
-    _LOGGER.debug("Setting up Class Charts calendar for pupil: %s", pupil_id)
-    async_add_entities([ClassChartsCalendar(coordinator, pupil_id)])
+    async_add_entities([
+        ClassChartsTimetableCalendar(coordinator, entry),
+        ClassChartsHomeworkCalendar(coordinator, entry),
+    ])
 
-class ClassChartsCalendar(CoordinatorEntity, CalendarEntity):
-    """Representation of a Class Charts Timetable."""
-
-    def __init__(self, coordinator, pupil_id):
-        """Pass the coordinator to CoordinatorEntity."""
+class ClassChartsCalendarBase(CoordinatorEntity, CalendarEntity):
+    """Base class for Class Charts calendars."""
+    
+    def __init__(self, coordinator, entry):
         super().__init__(coordinator)
-        self._pupil_id = pupil_id
-        self._attr_name = "Class Charts Timetable"
-        self._attr_unique_id = f"{pupil_id}_timetable_cal"
+        self._attr_unique_id = f"{entry.entry_id}_{self.calendar_type}"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": "Class Charts",
+        }
+
+class ClassChartsTimetableCalendar(ClassChartsCalendarBase):
+    """Calendar for school lessons."""
+    calendar_type = "timetable"
+    _attr_name = "Class Charts Timetable"
 
     @property
-    def available(self):
-        """Return if the data update was successful."""
-        return self.coordinator.last_update_success
+    def event(self) -> CalendarEvent | None:
+        """Return the next upcoming event."""
+        events = self._get_events()
+        now = dt_util.now()
+        upcoming = [e for e in events if e.end > now]
+        return upcoming[0] if upcoming else None
 
-    def _get_events_from_data(self):
-        """Helper to parse the coordinator data into calendar events."""
+    def _get_events(self) -> list[CalendarEvent]:
+        """Convert coordinator timetable data to CalendarEvents."""
         events = []
-        # Access the 'timetable' key defined in __init__.py
+        # Specifically pull the timetable dictionary
         data = self.coordinator.data.get("timetable", {})
         
-        if not data:
-            _LOGGER.debug("No timetable data found in coordinator")
-            return events
+        # Shield: If data is a list (causing your error), stop here and return empty
+        if not isinstance(data, dict):
+            return []
 
         for date_str, lessons in data.items():
             for lesson in lessons:
                 try:
-                    st_raw = lesson.get('start_time')
-                    et_raw = lesson.get('end_time')
+                    # Parse strings and convert to local time for HA
+                    start_dt = datetime.fromisoformat(lesson["start_time"])
+                    end_dt = datetime.fromisoformat(lesson["end_time"])
                     
-                    if not st_raw or not et_raw:
-                        continue
-
-                    # Try ISO format first, fallback to combining date + time
-                    try:
-                        start_dt = datetime.fromisoformat(st_raw)
-                        end_dt = datetime.fromisoformat(et_raw)
-                    except (ValueError, TypeError):
-                        start_dt = datetime.strptime(f"{date_str} {st_raw}", "%Y-%m-%d %H:%M:%S")
-                        end_dt = datetime.strptime(f"{date_str} {et_raw}", "%Y-%m-%d %H:%M:%S")
-
                     events.append(
                         CalendarEvent(
-                            summary=lesson.get("subject_name", "Lesson"),
+                            summary=lesson.get("subject_name", "Unknown"),
                             start=dt_util.as_local(start_dt),
                             end=dt_util.as_local(end_dt),
-                            location=lesson.get("room_name", "N/A"),
-                            description=f"Teacher: {lesson.get('teacher_name', 'Unknown')}",
+                            location=lesson.get("room_name"),
+                            description=f"Teacher: {lesson.get('teacher_name')}",
                         )
                     )
-                except Exception as err:
-                    _LOGGER.error("Timetable parse error on %s: %s", date_str, err)
+                except (KeyError, ValueError, TypeError):
+                    continue
         
-        return events
+        return sorted(events, key=lambda x: x.start)
 
-    async def async_get_events(self, hass, start_date, end_date):
-        """Return calendar events within a specific timeframe."""
-        events = self._get_events_from_data()
+    async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
+        """Return events within a specific time range for the UI."""
+        all_events = self._get_events()
         return [
-            event for event in events 
-            if event.start >= start_date and event.end <= end_date
+            e for e in all_events 
+            if e.start >= start_date and e.end <= end_date
         ]
 
+class ClassChartsHomeworkCalendar(ClassChartsCalendarBase):
+    """Calendar for homework due dates."""
+    calendar_type = "homework"
+    _attr_name = "Class Charts Homework"
+
     @property
-    def event(self):
-        """Return the next/current upcoming event."""
-        all_events = sorted(self._get_events_from_data(), key=lambda x: x.start)
+    def event(self) -> CalendarEvent | None:
+        """Return the next homework due."""
+        events = self._get_events()
         now = dt_util.now()
-        # Find the first event that hasn't ended yet
-        return next((e for e in all_events if e.end > now), None)
+        upcoming = [e for e in events if e.start >= now.date()]
+        return upcoming[0] if upcoming else None
+
+    def _get_events(self) -> list[CalendarEvent]:
+        """Convert coordinator homework list to CalendarEvents."""
+        events = []
+        hw_raw = self.coordinator.data.get("homework", {})
+        
+        # Homework is usually a list inside a 'data' key
+        homework_list = hw_raw.get("data", []) if isinstance(hw_raw, dict) else []
+        
+        if not isinstance(homework_list, list):
+            return []
+
+        for hw in homework_list:
+            try:
+                # Homework events are 'All Day'
+                due_date = date.fromisoformat(hw.get("due_date"))
+                
+                events.append(
+                    CalendarEvent(
+                        summary=f"HW: {hw.get('subject', 'Assignment')}",
+                        start=due_date,
+                        # HA All-Day events MUST end on the next day
+                        end=due_date + timedelta(days=1),
+                        description=hw.get("description", ""),
+                    )
+                )
+            except (KeyError, ValueError, TypeError):
+                continue
+                
+        return sorted(events, key=lambda x: x.start)
+
+    async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
+        all_events = self._get_events()
+        return [
+            e for e in all_events 
+            if e.start >= start_date.date() and e.start <= end_date.date()
+        ]
