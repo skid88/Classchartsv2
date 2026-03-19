@@ -17,12 +17,25 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
+        errors = {}
+
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_EMAIL], 
-                data=user_input
+            # 1. Run your test
+            is_valid = await self._test_credentials(
+                user_input[CONF_EMAIL], 
+                user_input[CONF_PASSWORD]
             )
 
+            if is_valid:
+                return self.async_create_entry(
+                    title=user_input[CONF_EMAIL], 
+                    data=user_input
+                )
+            else:
+                # 2. Assign the error key to "base" (shows at the top of the form)
+                errors["base"] = "invalid_auth"
+
+        # 3. Return the form WITH the errors dictionary
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
@@ -30,6 +43,7 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_PASSWORD): str,
                 vol.Required(CONF_PUPIL_ID): str,
             }),
+            errors=errors, # Critical: This triggers the UI "shake" and error message
         )
 
     @staticmethod
