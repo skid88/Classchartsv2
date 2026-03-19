@@ -14,7 +14,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Class Charts sensors."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
-    # This block MUST be indented with 4 spaces
     async_add_entities([
         CCHomeworkSensor(coordinator, entry, "Outstanding Homework", "this_week_outstanding_count"),
         CCHomeworkSensor(coordinator, entry, "Homework Due", "this_week_due_count"),
@@ -24,7 +23,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ])
 
 class CCHomeworkSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for Homework stats."""
+    """Sensor for Homework stats with attribute list for Markdown."""
     def __init__(self, coordinator, entry, name, key):
         super().__init__(coordinator)
         self._attr_name = name
@@ -40,11 +39,10 @@ class CCHomeworkSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Add the full list of homework to the attributes."""
+        """This provides the data for your Markdown card."""
         hw = self.coordinator.data.get("homework", {})
-        # Return the 'data' list from the homework dictionary
         return {"homework_list": hw.get("data", [])}
-        
+
 class CCLessonSensor(CoordinatorEntity, SensorEntity):
     """Sensor for Lessons."""
     def __init__(self, coordinator, entry, type):
