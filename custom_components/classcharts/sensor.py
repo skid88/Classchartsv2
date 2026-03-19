@@ -11,17 +11,17 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Class Charts sensors from a config entry."""
+    """Set up Class Charts sensors based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
-    # These must be indented INSIDE this function
+    # CRITICAL: These MUST be indented inside this function
     async_add_entities([
-        # Homework Entities (3)
+        # Homework Stats (3 Entities)
         CCHomeworkSensor(coordinator, entry, "Outstanding Homework", "this_week_outstanding_count"),
         CCHomeworkSensor(coordinator, entry, "Homework Due", "this_week_due_count"),
         CCHomeworkSensor(coordinator, entry, "Completed Homework", "this_week_completed_count"),
         
-        # Lesson Entities (2)
+        # Lessons (2 Entities)
         CCLessonSensor(coordinator, entry, "current"),
         CCLessonSensor(coordinator, entry, "next")
     ])
@@ -71,7 +71,7 @@ class CCLessonSensor(CoordinatorEntity, SensorEntity):
                 l["dt_start"] = dt_util.as_local(start_naive)
                 l["dt_end"] = dt_util.as_local(end_naive)
                 parsed.append(l)
-            except:
+            except (KeyError, ValueError, TypeError):
                 continue
         
         parsed.sort(key=lambda x: x["dt_start"])
@@ -80,7 +80,7 @@ class CCLessonSensor(CoordinatorEntity, SensorEntity):
             for l in parsed:
                 if l["dt_start"] <= now <= l["dt_end"]:
                     return l["subject_name"]
-        else:
+        else: # next
             for l in parsed:
                 if l["dt_start"] > now:
                     return l["subject_name"]
