@@ -11,17 +11,14 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Class Charts sensors based on a config entry."""
+    """Set up Class Charts sensors."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
-    # CRITICAL: These MUST be indented inside this function
+    # This block MUST be indented with 4 spaces
     async_add_entities([
-        # Homework Stats (3 Entities)
         CCHomeworkSensor(coordinator, entry, "Outstanding Homework", "this_week_outstanding_count"),
         CCHomeworkSensor(coordinator, entry, "Homework Due", "this_week_due_count"),
         CCHomeworkSensor(coordinator, entry, "Completed Homework", "this_week_completed_count"),
-        
-        # Lessons (2 Entities)
         CCLessonSensor(coordinator, entry, "current"),
         CCLessonSensor(coordinator, entry, "next")
     ])
@@ -33,10 +30,7 @@ class CCHomeworkSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = name
         self._key = key
         self._attr_unique_id = f"{entry.entry_id}_hw_{key}"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": "Class Charts",
-        }
+        self._attr_device_info = {"identifiers": {(DOMAIN, entry.entry_id)}, "name": "Class Charts"}
 
     @property
     def native_value(self):
@@ -51,10 +45,7 @@ class CCLessonSensor(CoordinatorEntity, SensorEntity):
         self._type = type
         self._attr_name = f"Class Charts {type.capitalize()} Lesson"
         self._attr_unique_id = f"{entry.entry_id}_lesson_{type}"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": "Class Charts",
-        }
+        self._attr_device_info = {"identifiers": {(DOMAIN, entry.entry_id)}, "name": "Class Charts"}
 
     @property
     def native_value(self):
@@ -71,7 +62,7 @@ class CCLessonSensor(CoordinatorEntity, SensorEntity):
                 l["dt_start"] = dt_util.as_local(start_naive)
                 l["dt_end"] = dt_util.as_local(end_naive)
                 parsed.append(l)
-            except (KeyError, ValueError, TypeError):
+            except:
                 continue
         
         parsed.sort(key=lambda x: x["dt_start"])
@@ -80,9 +71,8 @@ class CCLessonSensor(CoordinatorEntity, SensorEntity):
             for l in parsed:
                 if l["dt_start"] <= now <= l["dt_end"]:
                     return l["subject_name"]
-        else: # next
+        else:
             for l in parsed:
                 if l["dt_start"] > now:
                     return l["subject_name"]
-                    
         return "Free"
