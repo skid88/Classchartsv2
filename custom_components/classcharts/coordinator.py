@@ -20,6 +20,8 @@ def _normalize_lesson(lesson):
     """Clean up lesson data for the sensors and calendar."""
     if not isinstance(lesson, dict):
         return {}
+        
+    # Class Charts sometimes nests these under 'subject', 'teacher', or 'room'
     subject = lesson.get("subject") or {}
     teacher = lesson.get("teacher") or {}
     room = lesson.get("room") or {}
@@ -41,83 +43,24 @@ def sync_get_classcharts_data(email, password, pupil_id, days_to_fetch):
     })
     
     try:
-        # 1. Login
+        # 1. Login to get Session ID
         login_resp = session.post(
             LOGIN_URL, 
             data={"email": email, "password": password, "remember": "true"},
-            timeout=10
+            timeout=15
         )
         login_resp.raise_for_status()
         login_json = login_resp.json()
 
         token = login_json.get("meta", {}).get("session_id")
         if not token:
+            _LOGGER.error("Login failed: session_id missing from Class Charts response")
             raise UpdateFailed("No session_id found in login response")
 
         auth_headers = {"Authorization": f"Basic {token}"}
         
-        # 2. Fetch Timetable for X days (Returns a DICT of dates)
+        # 2. Fetch Timetable for X days
         full_schedule = {}
         for i in range(days_to_fetch):
             target_date = datetime.date.today() + datetime.timedelta(days=i)
-            date_str = target_date.strftime("%Y-%m-%d")
-
-            resp = session.get(
-                f"{TIMETABLE_URL}/{pupil_id}?date={date_str}",
-                headers=auth_headers,
-                timeout=10
-            )
-            
-            if resp.status_code == 200:
-                day_data = resp.json()
-                lessons = day_data.get("data", []) if isinstance(day_data, dict) else []
-                full_schedule[date_str] = [_normalize_lesson(l) for l in lessons]
-
-        # 3. Fetch Homework
-        hw_from = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        hw_to = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-        hw_url = f"https://www.classcharts.com/apiv2parent/homeworks/{pupil_id}"
-        
-        hw_resp = session.get(
-            hw_url,
-            params={"display_date": "due_date", "from": hw_from, "to": hw_to},
-            headers=auth_headers,
-            timeout=10
-        )
-        
-        homework_data = hw_resp.json() if hw_resp.status_code == 200 else {}
-
-        return {
-            "timetable": full_schedule,
-            "homework": homework_data,
-        }
-
-    except Exception as err:
-        _LOGGER.error("Error fetching Class Charts data: %s", err)
-        raise UpdateFailed(f"Error communicating with API: {err}")
-    finally:
-        session.close()
-
-class ClassChartsCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Class Charts data."""
-    def __init__(self, hass, entry):
-        self.refresh_interval = entry.options.get(CONF_REFRESH_INTERVAL) or entry.data.get(CONF_REFRESH_INTERVAL, 2)
-        self.days_to_fetch = entry.options.get(CONF_DAYS_TO_FETCH) or entry.data.get(CONF_DAYS_TO_FETCH, 7)
-        self.entry = entry
-
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(hours=self.refresh_interval),
-        )
-
-    async def _async_update_data(self):
-        """Fetch data from API using executor."""
-        return await self.hass.async_add_executor_job(
-            sync_get_classcharts_data,
-            self.entry.data[CONF_EMAIL],
-            self.entry.data[CONF_PASSWORD],
-            self.entry.data[CONF_PUPIL_ID],
-            self.days_to_fetch
-        )
+            date_str = target_date
