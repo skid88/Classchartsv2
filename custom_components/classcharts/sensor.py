@@ -10,15 +10,13 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Class Charts sensors based on a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    
-    # We define the entities here
-    async_add_entities([
-        CCHomeworkSensor(coordinator, entry, "outstanding", "this_week_outstanding_count"),
+async_add_entities([
+        
         CCLessonSensor(coordinator, entry, "current"),
-        CCLessonSensor(coordinator, entry, "next")
+        CCLessonSensor(coordinator, entry, "next"),
+        CCHomeworkSensor(coordinator, entry, "Outstanding Homework", "this_week_outstanding_count"),
+        CCHomeworkSensor(coordinator, entry, "Homework Due", "this_week_due_count"),
+        CCHomeworkSensor(coordinator, entry, "Completed Homework", "this_week_completed_count"),
     ])
 
 class CCHomeworkSensor(CoordinatorEntity, SensorEntity):
