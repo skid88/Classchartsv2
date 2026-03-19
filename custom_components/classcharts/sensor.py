@@ -38,6 +38,13 @@ class CCHomeworkSensor(CoordinatorEntity, SensorEntity):
         meta = hw.get("meta", {}) if isinstance(hw, dict) else {}
         return meta.get(self._key, 0)
 
+    @property
+    def extra_state_attributes(self):
+        """Add the full list of homework to the attributes."""
+        hw = self.coordinator.data.get("homework", {})
+        # Return the 'data' list from the homework dictionary
+        return {"homework_list": hw.get("data", [])}
+        
 class CCLessonSensor(CoordinatorEntity, SensorEntity):
     """Sensor for Lessons."""
     def __init__(self, coordinator, entry, type):
