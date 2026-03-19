@@ -1,7 +1,9 @@
 {
   "name": "Class Charts Timetable",
-  "content_in_root": false,
-  "homeassistant": "2024.1.0",
-  "render_readme": true
-  "hacs": "2.0.0"
+  "content_type": "integration",
+  "render_readme": true,
+  "country": "GB",
+  "homeassistant": "2026.1.0",
+  "zip_release": false,
+  "filename": "classcharts.zip"
 }
