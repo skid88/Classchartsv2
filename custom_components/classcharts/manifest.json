@@ -1,13 +1,10 @@
 {
   "domain": "classcharts",
   "name": "Class Charts",
-  "config_flow": true,
-  "codeowners": ["@yourusername"],
-  "dependencies": [],
-  "documentation": "https://github.com/yourusername/Classcharts",
-  "integration_type": "hub",
+  "codeowners": ["@skid88"],
+  "documentation": "https://github.com/skid88/Classcharts",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/yourusername/Classcharts/issues",
-  "requirements": ["requests"],
-  "version": "1.2.0"
+  "issue_tracker": "https://github.com/skid88/Classcharts/issues",
+  "version": "1.2.0",
+  "requirements": []
 }
