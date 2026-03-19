@@ -13,7 +13,8 @@ A modern, UI-configurable integration that brings your **Class Charts** school t
 - ⚙️ **UI Configuration**: No YAML required. Setup and adjust settings directly in the UI.
 - 📝 **Homework Tracking**: Detailed sensors for outstanding, completed, and total tasks.
 - 👨‍🏫 **Lesson Monitoring**: Know exactly what lesson is on now and what's coming up next.
-- 🔄 **Adjustable Fetching**: Choose to look ahead from 1 to 30 days via the "Configure" menu.
+- 🔄 **Adjustable Date Range**: Sync 1 to 30 days of lessons via the "Configure" menu.
+- ⚙️ **Set Update Interval**:  Configure the data synchronization rate. 
 
 ---
 
