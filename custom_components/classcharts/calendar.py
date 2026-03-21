@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 from datetime import datetime, date, timedelta
 
@@ -13,11 +12,8 @@ def clean_html_tags(raw_html: str) -> str:
         return ""
     import re
     import html
-    # Unescape things like &amp; or &quot;
     text = html.unescape(raw_html)
-    # Use RegEx to remove anything inside < > brackets
     clean_text = re.sub(r'<[^>]+>', '', text)
-    # Clean up extra spaces or newlines left behind
     clean_text = re.sub(r'\n\s*\n', '\n', clean_text)
     return clean_text.strip()
 
@@ -46,6 +42,7 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         """Return the next upcoming lesson."""
         events = self._get_events()
         now = dt_util.now()
+        # Find the first event that hasn't ended yet
         upcoming = [e for e in events if e.end > now]
         return upcoming[0] if upcoming else None
 
@@ -74,7 +71,7 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         return sorted(events, key=lambda x: x.start)
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
-        """Return events for the calendar UI."""
+        """Return events for the UI."""
         all_events = self._get_events()
         return [
             e for e in all_events 
@@ -88,3 +85,13 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         super().__init__(coordinator)
         self._attr_name = "Class Charts Homework"
         self._attr_unique_id = f"{entry.entry_id}_homework"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": "Class Charts",
+        }
+
+    @property
+    def event(self) -> CalendarEvent | None:
+        """Return the next homework due."""
+        events = self._get_events()
+        now_date = dt_util.now().date()
