@@ -1,5 +1,3 @@
-import re
-import html
 
 from __future__ import annotations
 from datetime import datetime, date, timedelta
@@ -13,6 +11,8 @@ def clean_html_tags(raw_html: str) -> str:
     """Strip HTML tags and unescape HTML entities."""
     if not raw_html:
         return ""
+    import re
+    import html
     # Unescape things like &amp; or &quot;
     text = html.unescape(raw_html)
     # Use RegEx to remove anything inside < > brackets
