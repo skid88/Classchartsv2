@@ -42,7 +42,6 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         """Return the next upcoming lesson."""
         events = self._get_events()
         now = dt_util.now()
-        # Find the first event that hasn't ended yet
         upcoming = [e for e in events if e.end > now]
         return upcoming[0] if upcoming else None
 
@@ -95,3 +94,50 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         """Return the next homework due."""
         events = self._get_events()
         now_date = dt_util.now().date()
+        upcoming = [e for e in events if e.start >= now_date]
+        return upcoming[0] if upcoming else None
+
+    def _get_events(self) -> list[CalendarEvent]:
+        """Convert coordinator homework list to CalendarEvents."""
+        events = []
+        # Get data from coordinator
+        hw_raw = self.coordinator.data.get("homework", {})
+        
+        # Ensure we are handling the nested 'data' list from ClassCharts API
+        if isinstance(hw_raw, dict):
+            homework_list = hw_raw.get("data", [])
+        else:
+            homework_list = []
+        
+        if not isinstance(homework_list, list):
+            return []
+
+        for hw in homework_list:
+            try:
+                # ClassCharts dates are usually YYYY-MM-DD
+                due_date = date.fromisoformat(hw.get("due_date"))
+                
+                # Clean HTML from description
+                raw_desc = hw.get("description", "")
+                clean_desc = clean_html_tags(raw_desc)
+
+                events.append(
+                    CalendarEvent(
+                        summary=f"HW: {hw.get('subject', 'Assignment')}",
+                        start=due_date,
+                        end=due_date + timedelta(days=1),
+                        description=clean_desc,
+                    )
+                )
+            except (KeyError, ValueError, TypeError):
+                continue
+                
+        return sorted(events, key=lambda x: x.start)
+
+    async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
+        """Return events for the calendar UI view."""
+        all_events = self._get_events()
+        return [
+            e for e in all_events 
+            if e.start >= start_date.date() and e.start <= end_date.date()
+        ]
