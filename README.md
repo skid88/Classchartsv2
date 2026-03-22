@@ -9,6 +9,8 @@ A modern, UI-configurable integration that brings your **Class Charts** school t
 ---
 
 ## 🛠 Features
+- 📅**Timetable Calendar**: See lessons, teachers, and room numbers.
+- 📅**Homework Calendar**: Track assignments and due dates.
 - 📅 **Native Calendar Support**: Syncs your entire school timetable to the HA Calendar.
 - ⚙️ **UI Configuration**: No YAML required. Setup and adjust settings directly in the UI.
 - 📝 **Homework Tracking**: Detailed sensors for outstanding, completed, and total tasks.
@@ -38,6 +40,35 @@ A modern, UI-configurable integration that brings your **Class Charts** school t
 2. Click **Add Integration** > Search for **Class Charts**.
 3. Enter your **Email**, **Password**, and **Pupil ID**.
 4. To change settings later, click **Configure** on the integration card.
+
+## ⚙️ Options
+
+This integration supports a dynamic **Options Flow**. You can adjust how the integration behaves at any time:
+1. Navigate to **Settings** > **Devices & Services**.
+2. Find **Class Charts** and click **Configure**.
+
+### Available Settings
+
+| Option | Default | Description |
+| :--- | :--- | :--- |
+| **Refresh Interval** | `24` | How often (in hours) the integration updates data from Class Charts. |
+| **Days to Fetch** | `14` | How many days into the future to look for events/homework. |
+| **Show Completed Homework** | `True` | Toggle to show/hide homework assignments marked as "Completed" in Class Charts. |
+
+---
+## 🗓️ Calendars
+
+### Class Charts Timetable
+A daily view of school lessons. 
+- **Summary**: Subject Name
+- **Location**: Room Number
+- **Description**: Teacher Name
+
+### Class Charts Homework
+A view of all homework assignments.
+- **Summary**: Subject and Assignment title.
+- **Description**: Full task description (HTML formatting removed for readability).
+- **Filtering**: Use the Configuration menu to hide completed tasks to keep your "To-Do" list clear.
 
 ---
 
