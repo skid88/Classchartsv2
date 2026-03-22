@@ -75,16 +75,22 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Link the options flow to the config flow."""
-        # FIXED: Passing the config_entry to the handler
         return ClassChartsOptionsFlowHandler(config_entry)
 
 
-async def async_step_init(self, user_input=None):
+class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Class Charts settings."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        super().__init__(config_entry)
+
+    async def async_step_init(self, user_input=None):
         """Manage the actual settings menu."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # You can now safely use self.config_entry.options
+        # Retrieve current options safely
         options = self.config_entry.options
 
         return self.async_show_form(
