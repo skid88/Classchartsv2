@@ -105,5 +105,10 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_DAYS_TO_FETCH,
                     default=options.get(CONF_DAYS_TO_FETCH, 14),
                 ): int,
+                vol.Optional(
+                "show_completed_homework",
+                # This ensures the box stays checked/unchecked based on what they saved last time
+                default=self.config_entry.options.get("show_completed_homework", True),
+                ): bool,    
             }),
         )
