@@ -79,18 +79,12 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return ClassChartsOptionsFlowHandler(config_entry)
 
 
-class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle options flow for Class Charts settings."""
-
-    # REMOVE the __init__ method entirely. 
-    # Home Assistant sets self.config_entry for you automatically.
-
-    async def async_step_init(self, user_input=None):
+async def async_step_init(self, user_input=None):
         """Manage the actual settings menu."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # self.config_entry is already available here by default
+        # You can now safely use self.config_entry.options
         options = self.config_entry.options
 
         return self.async_show_form(
