@@ -5,13 +5,23 @@
         "data": {
           "email": "Email Address",
           "password": "Password",
-          "pupil_id": "Pupil ID"       }
+          "pupil_id": "Pupil ID"
+        }
       }
     },
     "error": {
       "invalid_auth": "Invalid Credentials. Please check your email and password.",
       "cannot_connect": "Failed to connect to Class Charts. Please Check internet",
       "unknown": "An unexpected error occurred."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "show_completed_homework": "Display completed homework on calendar"
+        }
+      }
     }
   }
 }
