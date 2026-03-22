@@ -90,7 +90,7 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Retrieve current options safely
+        # Retrieve current options using the properly initialized self.config_entry
         options = self.config_entry.options
 
         return self.async_show_form(
