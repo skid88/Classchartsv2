@@ -46,18 +46,17 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         return upcoming[0] if upcoming else None
 
     def _get_events(self) -> list[CalendarEvent]:
-        """Convert coordinator timetable data to CalendarEvents."""
-        events = []
-        data = self.coordinator.data.get("timetable", {})
-        if not isinstance(data, dict):
-            return []
-
-        for date_str, lessons in data.items():
+    """Convert coordinator data to CalendarEvents."""
+    events = []
+    
+    # --- Part A: Handle Timetable Lessons ---
+    timetable_data = self.coordinator.data.get("timetable", {})
+    if isinstance(timetable_data, dict):
+        for date_str, lessons in timetable_data.items():
             for lesson in lessons:
                 try:
                     start = dt_util.as_local(datetime.fromisoformat(lesson["start_time"]))
                     end = dt_util.as_local(datetime.fromisoformat(lesson["end_time"]))
-                    
                     events.append(CalendarEvent(
                         summary=lesson.get("subject_name", "Unknown"),
                         start=start,
@@ -67,7 +66,29 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
                     ))
                 except (KeyError, ValueError, TypeError):
                     continue
-        return sorted(events, key=lambda x: x.start)
+
+    # --- Part B: Handle Homework ---
+    homework_data = self.coordinator.data.get("homework", [])
+    for hw in homework_data:
+        try:
+            # Check the "ticked" status from your JSON
+            is_completed = hw.get("status", {}).get("ticked") == "yes"
+            
+            # Create the event
+            hw_event = CalendarEvent(
+                summary=f"HW: {hw.get('subject')}",
+                start=dt_util.start_of_local_day(datetime.fromisoformat(hw["due_date"])),
+                end=dt_util.start_of_local_day(datetime.fromisoformat(hw["due_date"])),
+                description=hw.get("description", "")
+            )
+            
+            # Attach a custom attribute so async_get_events can see it
+            hw_event.is_completed_homework = is_completed
+            events.append(hw_event)
+        except (KeyError, ValueError, TypeError):
+            continue
+
+    return sorted(events, key=lambda x: x.start)
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the UI."""
@@ -136,8 +157,11 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the calendar UI view."""
+        show_completed = self.config_entry.data.get("show_completed_homework", True)
+        
         all_events = self._get_events()
         return [
             e for e in all_events 
             if e.start >= start_date.date() and e.start <= end_date.date()
+            and (show_completed or not getattr(e, "is_ticked", False))
         ]
