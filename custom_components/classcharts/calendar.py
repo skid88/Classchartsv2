@@ -91,39 +91,30 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         }
 
     @property
-    def event(self) -> CalendarEvent | None:
-        """Return the next homework due."""
-        events = self._get_events()
-        now_date = dt_util.now().date()
-        upcoming = [e for e in events if e.start >= now_date]
-        return upcoming[0] if upcoming else None
-
     def _get_events(self) -> list[CalendarEvent]:
         """Convert coordinator homework list to CalendarEvents."""
         events = []
-        # Support both direct list and nested 'data' list formats
-        hw_raw = self.coordinator.data.get("homework", [])
-        homework_list = hw_raw.get("data", []) if isinstance(hw_raw, dict) else hw_raw
+        hw_raw = self.coordinator.data.get("homework", {})
         
-        if not isinstance(homework_list, list):
-            return []
-
+        # Handle the nested 'data' list from ClassCharts API
+        homework_list = hw_raw.get("data", []) if isinstance(hw_raw, dict) else []
+        
         for hw in homework_list:
             try:
                 due_date = date.fromisoformat(hw.get("due_date"))
-                clean_desc = clean_html_tags(hw.get("description", ""))
                 
-                # Check the "ticked" status
+                # Check completion status from the API
                 is_completed = hw.get("status", {}).get("ticked") == "yes"
 
                 event = CalendarEvent(
                     summary=f"HW: {hw.get('subject', 'Assignment')}",
                     start=due_date,
                     end=due_date + timedelta(days=1),
-                    description=clean_desc,
+                    description=clean_html_tags(hw.get("description", "")),
                 )
-                # Attach the tag for filtering
-                event.is_completed = is_completed
+                
+                # Attach the completion status for the filter
+                event.is_completed_homework = is_completed
                 events.append(event)
             except (KeyError, ValueError, TypeError):
                 continue
@@ -132,12 +123,12 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the calendar UI view with filtering."""
-        # Use .options for the user-configurable toggle
+        # Pull from .options, not .data
         show_completed = self.coordinator.config_entry.options.get("show_completed_homework", True)
         
         all_events = self._get_events()
         return [
             e for e in all_events 
             if e.start >= start_date.date() and e.start <= end_date.date()
-            and (show_completed or not getattr(e, "is_completed", False))
+            and (show_completed or not getattr(e, "is_completed_homework", False))
         ]
