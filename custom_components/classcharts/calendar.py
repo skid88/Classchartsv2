@@ -48,9 +48,8 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
     def _get_events(self) -> list[CalendarEvent]:
         """Convert coordinator data to CalendarEvents."""
         events = []
-        
-        # --- Part A: Handle Timetable Lessons ---
         timetable_data = self.coordinator.data.get("timetable", {})
+        
         if isinstance(timetable_data, dict):
             for date_str, lessons in timetable_data.items():
                 for lesson in lessons:
@@ -72,7 +71,6 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the UI."""
         all_events = self._get_events()
-        # Lessons are datetimes, so compare directly with start_date/end_date
         return [
             e for e in all_events 
             if e.start >= start_date and e.end <= end_date
@@ -91,19 +89,24 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         }
 
     @property
+    def event(self) -> CalendarEvent | None:
+        """Return the next homework due."""
+        events = self._get_events()
+        now_date = dt_util.now().date()
+        upcoming = [e for e in events if e.start >= now_date]
+        return upcoming[0] if upcoming else None
+
     def _get_events(self) -> list[CalendarEvent]:
         """Convert coordinator homework list to CalendarEvents."""
         events = []
         hw_raw = self.coordinator.data.get("homework", {})
         
-        # Handle the nested 'data' list from ClassCharts API
+        # Standard ClassCharts API nesting
         homework_list = hw_raw.get("data", []) if isinstance(hw_raw, dict) else []
         
         for hw in homework_list:
             try:
                 due_date = date.fromisoformat(hw.get("due_date"))
-                
-                # Check completion status from the API
                 is_completed = hw.get("status", {}).get("ticked") == "yes"
 
                 event = CalendarEvent(
@@ -113,7 +116,7 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
                     description=clean_html_tags(hw.get("description", "")),
                 )
                 
-                # Attach the completion status for the filter
+                # Tag for filtering
                 event.is_completed_homework = is_completed
                 events.append(event)
             except (KeyError, ValueError, TypeError):
@@ -123,7 +126,7 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the calendar UI view with filtering."""
-        # Pull from .options, not .data
+        # Use .options from the coordinator's entry
         show_completed = self.coordinator.config_entry.options.get("show_completed_homework", True)
         
         all_events = self._get_events()
