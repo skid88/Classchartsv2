@@ -1,6 +1,6 @@
 import logging
-import aiohttp
 import asyncio
+import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -58,6 +58,7 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             async with asyncio.timeout(10):
+                # We use the LOGIN_URL defined in const.py
                 async with session.post(LOGIN_URL, data=payload) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -74,7 +75,6 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Link the options flow to the config flow."""
-        # This line passes the entry to the class below
         return ClassChartsOptionsFlowHandler(config_entry)
 
 
@@ -83,7 +83,6 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        # This allows the class to accept the argument from line 79
         super().__init__(config_entry)
 
     async def async_step_init(self, user_input=None):
@@ -91,7 +90,6 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Access the current options
         options = self.config_entry.options
 
         return self.async_show_form(
@@ -100,4 +98,14 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_REFRESH_INTERVAL,
                     default=options.get(CONF_REFRESH_INTERVAL, 24),
-                ): int
+                ): int,
+                vol.Optional(
+                    CONF_DAYS_TO_FETCH,
+                    default=options.get(CONF_DAYS_TO_FETCH, 14),
+                ): int,
+                vol.Optional(
+                    "show_completed_homework",
+                    default=options.get("show_completed_homework", True),
+                ): bool,    
+            }),
+        )
