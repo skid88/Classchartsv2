@@ -28,7 +28,6 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # 1. Test the credentials against the actual API
             is_valid = await self._test_credentials(
                 user_input[CONF_EMAIL], 
                 user_input[CONF_PASSWORD]
@@ -75,6 +74,7 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Link the options flow to the config flow."""
+        # This line passes the entry to the class below
         return ClassChartsOptionsFlowHandler(config_entry)
 
 
@@ -83,6 +83,7 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
+        # This allows the class to accept the argument from line 79
         super().__init__(config_entry)
 
     async def async_step_init(self, user_input=None):
@@ -90,7 +91,7 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Retrieve current options safely
+        # Access the current options
         options = self.config_entry.options
 
         return self.async_show_form(
@@ -99,14 +100,4 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_REFRESH_INTERVAL,
                     default=options.get(CONF_REFRESH_INTERVAL, 24),
-                ): int,
-                vol.Optional(
-                    CONF_DAYS_TO_FETCH,
-                    default=options.get(CONF_DAYS_TO_FETCH, 14),
-                ): int,
-                vol.Optional(
-                    "show_completed_homework",
-                    default=options.get("show_completed_homework", True),
-                ): bool,    
-            }),
-        )
+                ): int
