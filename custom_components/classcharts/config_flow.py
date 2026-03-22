@@ -40,7 +40,6 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=user_input
                 )
             else:
-                
                 errors["base"] = "invalid_auth"
 
         return self.async_show_form(
@@ -55,7 +54,6 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _test_credentials(self, email, password):
         """Return true if credentials are valid by hitting the API."""
-       
         session = async_get_clientsession(self.hass)
         payload = {"email": email, "password": password}
 
@@ -64,7 +62,6 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 async with session.post(LOGIN_URL, data=payload) as response:
                     if response.status == 200:
                         data = await response.json()
-                       
                         return data.get("success", False) or "token" in data
                     return False
         except (aiohttp.ClientError, asyncio.TimeoutError):
@@ -76,11 +73,18 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
+    def async_get_options_flow(config_entry):
+        """Link the options flow to the config flow."""
+        # FIXED: Passing the config_entry to the handler
+        return ClassChartsOptionsFlowHandler(config_entry)
+
+
+class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Class Charts settings."""
 
     def __init__(self, config_entry):
         """Initialize options flow."""
+        # FIXED: Storing the entry so async_step_init can use it
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
@@ -88,7 +92,6 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        
         options = self.config_entry.options
 
         return self.async_show_form(
@@ -103,9 +106,8 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     default=options.get(CONF_DAYS_TO_FETCH, 14),
                 ): int,
                 vol.Optional(
-                "show_completed_homework",
-                # This ensures the box stays checked/unchecked based on what they saved last time
-                default=self.config_entry.options.get("show_completed_homework", True),
+                    "show_completed_homework",
+                    default=options.get("show_completed_homework", True),
                 ): bool,    
             }),
         )
