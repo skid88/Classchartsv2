@@ -103,6 +103,7 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator)
+        self.entry = entry  # Store entry to access options later
         self._attr_name = "Class Charts Homework"
         self._attr_unique_id = f"{entry.entry_id}_homework"
         self._attr_device_info = {
@@ -110,58 +111,47 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
             "name": "Class Charts",
         }
 
-    @property
-    def event(self) -> CalendarEvent | None:
-        """Return the next homework due."""
-        events = self._get_events()
-        now_date = dt_util.now().date()
-        upcoming = [e for e in events if e.start >= now_date]
-        return upcoming[0] if upcoming else None
-
     def _get_events(self) -> list[CalendarEvent]:
         """Convert coordinator homework list to CalendarEvents."""
         events = []
         # Get data from coordinator
-        hw_raw = self.coordinator.data.get("homework", {})
-        
-        # Ensure we are handling the nested 'data' list from ClassCharts API
-        if isinstance(hw_raw, dict):
-            homework_list = hw_raw.get("data", [])
-        else:
-            homework_list = []
+        homework_list = self.coordinator.data.get("homework", [])
         
         if not isinstance(homework_list, list):
             return []
 
         for hw in homework_list:
             try:
-                # ClassCharts dates are usually YYYY-MM-DD
                 due_date = date.fromisoformat(hw.get("due_date"))
-                
-                # Clean HTML from description
-                raw_desc = hw.get("description", "")
-                clean_desc = clean_html_tags(raw_desc)
+                clean_desc = clean_html_tags(hw.get("description", ""))
 
-                events.append(
-                    CalendarEvent(
-                        summary=f"HW: {hw.get('subject', 'Assignment')}",
-                        start=due_date,
-                        end=due_date + timedelta(days=1),
-                        description=clean_desc,
-                    )
+                # Check if completed based on the "ticked" field from API
+                is_completed = hw.get("status", {}).get("ticked") == "yes"
+
+                event = CalendarEvent(
+                    summary=f"HW: {hw.get('subject', 'Assignment')}",
+                    start=due_date,
+                    end=due_date + timedelta(days=1),
+                    description=clean_desc,
                 )
+                
+                # Attach the completion status to the event object
+                event.is_completed = is_completed
+                events.append(event)
             except (KeyError, ValueError, TypeError):
                 continue
                 
         return sorted(events, key=lambda x: x.start)
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
-        """Return events for the calendar UI view."""
-        show_completed = self.config_entry.data.get("show_completed_homework", True)
+        """Return events for the calendar UI view with filtering."""
+        # Pull preference from Options Flow
+        show_completed = self.entry.options.get("show_completed_homework", True)
         
         all_events = self._get_events()
+        
         return [
             e for e in all_events 
             if e.start >= start_date.date() and e.start <= end_date.date()
-            and (show_completed or not getattr(e, "is_ticked", False))
+            and (show_completed or not getattr(e, "is_completed", False))
         ]
