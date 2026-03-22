@@ -76,15 +76,12 @@ class ClassChartsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
-        """Link the options flow to the config flow."""
-        return ClassChartsOptionsFlowHandler()
-
-
-class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
+    class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Class Charts settings."""
 
-    
+    def __init__(self, config_entry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage the actual settings menu."""
