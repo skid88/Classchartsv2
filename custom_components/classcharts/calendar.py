@@ -80,7 +80,6 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         
         all_events = self._get_events()
         
-        # 1. Filter real lessons for the requested range
         # 1. Filter real lessons
         filtered_events = [
             e for e in all_events 
@@ -93,10 +92,12 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         if show_no_school:
             current_day = start_date.date()
             finish_day = end_date.date()
+            today = dt_util.now().date() # Get today's date
             
             while current_day <= finish_day:
-                # Mon-Fri only
-                if current_day.weekday() < 5:
+                # FIX: Only process if the day is Today or in the Future
+                if current_day.weekday() < 5 and current_day >= today:
+                    
                     # Check if this specific day is empty
                     day_has_lesson = any(e.start.date() == current_day for e in filtered_events)
                     
@@ -116,6 +117,7 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
                 current_day += timedelta(days=1)
 
         return sorted(filtered_events, key=lambda x: x.start)
+        
 class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
     """Calendar for homework due dates."""
 
