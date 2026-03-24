@@ -4,7 +4,6 @@ from datetime import datetime, date, timedelta
 from homeassistant.util import dt as dt_util
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-# Added CONF_SHOW_NO_SCHOOL to the import list
 from .const import DOMAIN, CONF_SHOW_NO_SCHOOL 
 
 def clean_html_tags(raw_html: str) -> str:
