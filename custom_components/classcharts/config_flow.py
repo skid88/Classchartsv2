@@ -13,7 +13,8 @@ from .const import (
     CONF_PUPIL_ID,
     CONF_REFRESH_INTERVAL,
     CONF_DAYS_TO_FETCH,
-    LOGIN_URL,  
+    LOGIN_URL,
+    CONF_SHOW_NO_SCHOOL
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,6 +106,10 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     "show_completed_homework",
                     default=options.get("show_completed_homework", True),
-                ): bool,    
+                ): bool,
+                vol.Optional(
+                   CONF_SHOW_NO_SCHOOL,
+                   default=self.config_entry.options.get(CONF_SHOW_NO_SCHOOL, True),
+                ): bool,
             }),
         )

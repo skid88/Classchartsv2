@@ -21,3 +21,4 @@ ATTR_SUBJECT = "subject"
 #Define
 CONF_REFRESH_INTERVAL = "refresh_interval"
 CONF_DAYS_TO_FETCH = "days_to_fetch"
+CONF_SHOW_NO_SCHOOL = "show_no_school"
