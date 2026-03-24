@@ -21,4 +21,4 @@ ATTR_SUBJECT = "subject"
 #Define
 CONF_REFRESH_INTERVAL = "refresh_interval"
 CONF_DAYS_TO_FETCH = "days_to_fetch"
-CONF_SHOW_NO_SCHOOL = "Holiday"
+CONF_SHOW_NO_SCHOOL = "Display_No School_on_Empty_calender_days"
