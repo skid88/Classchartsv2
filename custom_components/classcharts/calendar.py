@@ -4,7 +4,8 @@ from datetime import datetime, date, timedelta
 from homeassistant.util import dt as dt_util
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import DOMAIN
+# Added CONF_SHOW_NO_SCHOOL to the import list
+from .const import DOMAIN, CONF_SHOW_NO_SCHOOL 
 
 def clean_html_tags(raw_html: str) -> str:
     """Strip HTML tags and unescape HTML entities."""
@@ -68,13 +69,31 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
 
         return sorted(events, key=lambda x: x.start)
 
+    # Fixed Indentation: Now correctly inside the ClassChartsTimetableCalendar class
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the UI."""
         all_events = self._get_events()
-        return [
+        filtered_events = [
             e for e in all_events 
             if e.start >= start_date and e.end <= end_date
         ]
+
+        # Check toggle from options
+        show_no_school = self.coordinator.config_entry.options.get(CONF_SHOW_NO_SCHOOL, True)
+
+        if not filtered_events and show_no_school:
+            # Check if start_date is Monday (0) through Friday (4)
+            if start_date.weekday() < 5:
+                no_school_event = CalendarEvent(
+                    summary="No School",
+                    start=start_date,
+                    end=end_date,
+                    description="No lessons scheduled for this school day.",
+                    location="Home",
+                )
+                return [no_school_event]
+
+        return filtered_events
 
 class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
     """Calendar for homework due dates."""
@@ -93,6 +112,7 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         """Return the next homework due."""
         events = self._get_events()
         now_date = dt_util.now().date()
+        # Homework events use date objects, so we compare dates
         upcoming = [e for e in events if e.start >= now_date]
         return upcoming[0] if upcoming else None
 
@@ -100,8 +120,6 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         """Convert coordinator homework list to CalendarEvents."""
         events = []
         hw_raw = self.coordinator.data.get("homework", {})
-        
-        # Standard ClassCharts API nesting
         homework_list = hw_raw.get("data", []) if isinstance(hw_raw, dict) else []
         
         for hw in homework_list:
@@ -126,10 +144,10 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
 
     async def async_get_events(self, hass, start_date, end_date) -> list[CalendarEvent]:
         """Return events for the calendar UI view with filtering."""
-        # Use .options from the coordinator's entry
         show_completed = self.coordinator.config_entry.options.get("show_completed_homework", True)
         
         all_events = self._get_events()
+        # Fixed logic to ensure we are comparing dates to dates
         return [
             e for e in all_events 
             if e.start >= start_date.date() and e.start <= end_date.date()
