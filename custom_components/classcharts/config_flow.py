@@ -105,6 +105,10 @@ class ClassChartsOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     "show_completed_homework",
                     default=options.get("show_completed_homework", True),
-                ): bool,    
+                ): bool,
+                vol.Optional(
+                   CONF_SHOW_NO_SCHOOL,
+                   default=self.config_entry.options.get(CONF_SHOW_NO_SCHOOL, True),
+                ): bool,
             }),
         )
