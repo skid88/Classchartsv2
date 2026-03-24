@@ -1,6 +1,7 @@
-import logging
-_LOGGER = logging.getLogger(__name__)
 from __future__ import annotations
+import re    # Moved from function to top
+import html  # Moved from function to top
+import logging
 from datetime import datetime, date, timedelta
 
 from homeassistant.util import dt as dt_util
@@ -8,12 +9,14 @@ from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, CONF_SHOW_NO_SCHOOL 
 
+# Define the logger properly
+_LOGGER = logging.getLogger(__name__)
+
 def clean_html_tags(raw_html: str) -> str:
     """Strip HTML tags and unescape HTML entities."""
     if not raw_html:
         return ""
-    import re
-    import html
+    # Remove the imports from here
     text = html.unescape(raw_html)
     clean_text = re.sub(r'<[^>]+>', '', text)
     clean_text = re.sub(r'\n\s*\n', '\n', clean_text)
