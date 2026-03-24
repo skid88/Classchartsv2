@@ -90,13 +90,22 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         show_no_school = self.coordinator.config_entry.options.get(CONF_SHOW_NO_SCHOOL, True)
 
         if show_no_school:
+            # Get the settings
+            days_to_fetch = self.coordinator.config_entry.options.get("days_to_fetch", 7)
+            today = dt_util.now().date()
+            
+            # Calculate the "Last Reliable Date" (Today + fetch limit)
+            max_data_date = today + timedelta(days=days_to_fetch)
+            
             current_day = start_date.date()
             finish_day = end_date.date()
-            today = dt_util.now().date() # Get today's date
             
             while current_day <= finish_day:
-                # FIX: Only process if the day is Today or in the Future
-                if current_day.weekday() < 5 and current_day >= today:
+                # NEW LOGIC:
+                # 1. Must be a Weekday (0-4)
+                # 2. Must be Today or Future (current >= today)
+                # 3. MUST be within our data window (current <= max_data_date)
+                if current_day.weekday() < 5 and today <= current_day <= max_data_date:
                     
                     # Check if this specific day is empty
                     day_has_lesson = any(e.start.date() == current_day for e in filtered_events)
