@@ -13,7 +13,8 @@ from .const import (
     CONF_PUPIL_ID,
     CONF_REFRESH_INTERVAL,
     CONF_DAYS_TO_FETCH,
-    LOGIN_URL,  
+    LOGIN_URL,
+    CONF_SHOW_NO_SCHOOL
 )
 
 _LOGGER = logging.getLogger(__name__)
