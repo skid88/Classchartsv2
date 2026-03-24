@@ -80,51 +80,54 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         
         all_events = self._get_events()
         
-        # 1. Filter real lessons
+        # 1. Filter real lessons (using .date() to ensure they catch full day ranges)
         filtered_events = [
             e for e in all_events 
             if e.start.date() >= start_date.date() and e.end.date() <= end_date.date()
         ]
 
-        # 2. Check the "No School" toggle
+        # 2. Check the "No School" toggle from options
         show_no_school = self.coordinator.config_entry.options.get(CONF_SHOW_NO_SCHOOL, True)
 
         if show_no_school:
-            # Get the settings
-            days_to_fetch = self.coordinator.config_entry.options.get("days_to_fetch", 7)
-            today = dt_util.now().date()
+            # 3. Get the fetch limit from settings (ensure key matches your config_flow)
+            from .const import CONF_DAYS_TO_FETCH
+            days_to_fetch = self.coordinator.config_entry.options.get(CONF_DAYS_TO_FETCH, 7)
             
-            # Calculate the "Last Reliable Date" (Today + fetch limit)
+            today = dt_util.now().date()
             max_data_date = today + timedelta(days=days_to_fetch)
             
             current_day = start_date.date()
             finish_day = end_date.date()
             
             while current_day <= finish_day:
-                # NEW LOGIC:
-                # 1. Must be a Weekday (0-4)
-                # 2. Must be Today or Future (current >= today)
-                # 3. MUST be within our data window (current <= max_data_date)
+                # Logic: Weekday AND Today/Future AND Within Data Window
                 if current_day.weekday() < 5 and today <= current_day <= max_data_date:
                     
-                    # Check if this specific day is empty
+                    # Check if this specific day has any real lessons
                     day_has_lesson = any(e.start.date() == current_day for e in filtered_events)
                     
                     if not day_has_lesson:
-                        day_start = dt_util.as_local(datetime.combine(current_day, datetime.min.time()))
-                        day_end = dt_util.as_local(datetime.combine(current_day, datetime.max.time()))
+                        # Define standard school hours to make it look like a "block" in the UI
+                        day_start = dt_util.as_local(
+                            datetime.combine(current_day, datetime.strptime("08:30", "%H:%M").time())
+                        )
+                        day_end = dt_util.as_local(
+                            datetime.combine(current_day, datetime.strptime("15:30", "%H:%M").time())
+                        )
                         
                         filtered_events.append(
                             CalendarEvent(
                                 summary="No School",
                                 start=day_start,
                                 end=day_end,
-                                description="No lessons scheduled for this school day.",
+                                description="No lessons scheduled for this school day within the fetched range.",
                                 location="Home",
                             )
                         )
                 current_day += timedelta(days=1)
 
+        # 4. Final sort so lessons and "No School" blocks appear in chronological order
         return sorted(filtered_events, key=lambda x: x.start)
         
 class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
