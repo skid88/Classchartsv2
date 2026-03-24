@@ -81,9 +81,10 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         all_events = self._get_events()
         
         # 1. Filter real lessons for the requested range
+        # 1. Filter real lessons
         filtered_events = [
             e for e in all_events 
-            if e.start >= start_date and e.end <= end_date
+            if e.start.date() >= start_date.date() and e.end.date() <= end_date.date()
         ]
 
         # 2. Check the "No School" toggle
