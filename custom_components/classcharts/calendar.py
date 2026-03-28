@@ -1,6 +1,6 @@
 from __future__ import annotations
-import re    # Moved from function to top
-import html  # Moved from function to top
+import re    
+import html 
 import logging
 from datetime import datetime, date, timedelta
 
@@ -9,14 +9,14 @@ from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, CONF_SHOW_NO_SCHOOL 
 
-# Define the logger properly
+
 _LOGGER = logging.getLogger(__name__)
 
 def clean_html_tags(raw_html: str) -> str:
     """Strip HTML tags and unescape HTML entities."""
     if not raw_html:
         return ""
-    # Remove the imports from here
+   
     text = html.unescape(raw_html)
     clean_text = re.sub(r'<[^>]+>', '', text)
     clean_text = re.sub(r'\n\s*\n', '\n', clean_text)
@@ -90,7 +90,7 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
         show_no_school = self.coordinator.config_entry.options.get(CONF_SHOW_NO_SCHOOL, True)
 
         if show_no_school:
-            # 3. Get the fetch limit from settings (ensure key matches your config_flow)
+            # 3. Get the fetch limit from settings 
             from .const import CONF_DAYS_TO_FETCH
             days_to_fetch = self.coordinator.config_entry.options.get(CONF_DAYS_TO_FETCH, 7)
             
@@ -127,7 +127,7 @@ class ClassChartsTimetableCalendar(CoordinatorEntity, CalendarEntity):
                         )
                 current_day += timedelta(days=1)
 
-        # 4. Final sort so lessons and "No School" blocks appear in chronological order
+        
         return sorted(filtered_events, key=lambda x: x.start)
         
 class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
@@ -147,7 +147,6 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         """Return the next homework due."""
         events = self._get_events()
         now_date = dt_util.now().date()
-        # Homework events use date objects, so we compare dates
         upcoming = [e for e in events if e.start >= now_date]
         return upcoming[0] if upcoming else None
 
@@ -169,7 +168,6 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
                     description=clean_html_tags(hw.get("description", "")),
                 )
                 
-                # Tag for filtering
                 event.is_completed_homework = is_completed
                 events.append(event)
             except (KeyError, ValueError, TypeError):
@@ -182,7 +180,6 @@ class ClassChartsHomeworkCalendar(CoordinatorEntity, CalendarEntity):
         show_completed = self.coordinator.config_entry.options.get("show_completed_homework", True)
         
         all_events = self._get_events()
-        # Fixed logic to ensure we are comparing dates to dates
         return [
             e for e in all_events 
             if e.start >= start_date.date() and e.start <= end_date.date()
